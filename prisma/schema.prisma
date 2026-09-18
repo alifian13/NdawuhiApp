@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TUTOR
+  SISWA
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model User {
+  id       String  @id @default(uuid())
+  name     String
+  email    String  @unique
+  password String
+  role     Role    @default(SISWA)
+  fcmToken String?
+
+  // Relasi Data (Sudah diperbaiki)
+  messagesSent    Message[]
+  ticketsOwned    Ticket[]  @relation("RequesterTickets")
+  ticketsAssigned Ticket[]  @relation("AssignedTickets")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Ticket {
+  id     String       @id @default(uuid())
+  status TicketStatus @default(OPEN)
+
+  requesterId String
+  requester   User   @relation("RequesterTickets", fields: [requesterId], references: [id])
+
+  assigneeId String?
+  assignee   User?   @relation("AssignedTickets", fields: [assigneeId], references: [id])
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id      String  @id @default(uuid())
+  content String
+  isRead  Boolean @default(false)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
+
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Campaign {
+  id         String @id @default(uuid())
+  title      String
+  content    String
+  targetRole Role
+  status     String @default("DRAFT")
+
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+}
